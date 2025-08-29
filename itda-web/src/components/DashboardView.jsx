@@ -4,7 +4,7 @@ import { getJSON, postJSON, patchJSON, delJSON } from "../api";
 import AnalyticsView from "./AnalyticsView";
 import DemandForecastView from "./DemandForecastView";
 import InventoryOptimizeView from "./InventoryOptimizeView";
-
+import RouteOptimizeView from "./RouteOptimizeView";
 
 // ===== 작은 유틸 =====
 const fmtKRDate = (d) => new Date(d).toLocaleString("ko-KR");
@@ -202,21 +202,13 @@ export default function DashboardView() {
   };
 
   // ===== 초기 로딩 =====
-  useEffect(() => {
-    fetchAlerts();
-  }, []);
+  useEffect(() => { fetchAlerts(); }, []);
   useEffect(() => {
     if (dashboardPage === "overview" || dashboardPage === "vehicles") loadVehicles();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dashboardPage]);
-  useEffect(() => {
-    if (dashboardPage === "customers") loadCustomers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dashboardPage]);
-  useEffect(() => {
-    if (dashboardPage === "customers") loadCustomers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [custVillageId]);
+  useEffect(() => { if (dashboardPage === "customers") loadCustomers(); /* eslint-disable-next-line */ }, [dashboardPage]);
+  useEffect(() => { if (dashboardPage === "customers") loadCustomers(); /* eslint-disable-next-line */ }, [custVillageId]);
 
   // ===== Reports (AI/RAG) =====
   const [repType, setRepType] = useState("daily");
@@ -433,16 +425,21 @@ export default function DashboardView() {
       <div className="dashboard-sidebar">
         <h3>📊 잇다 관리자</h3>
         <ul>
-          <NavItem id="overview"  icon="🏠" label="대시보드" />
-          <NavItem id="vehicles"  icon="🚚" label="차량 관리" />
+          <NavItem id="overview" icon="🏠" label="대시보드" />
+          <NavItem id="vehicles" icon="🚚" label="차량 관리" />
           <NavItem id="inventory" icon="📦" label="재고 관리" />
           <NavItem id="customers" icon="👥" label="고객 관리" />
-          <NavItem id="alerts"    icon="🚨" label="위기 알림" />
+          <NavItem id="alerts" icon="🚨" label="위기 알림" />
           <NavItem id="analytics" icon="📈" label="매출 분석" />
-          {/* 👉 수요 예측(ML) 항목 복원 */}
-          <NavItem id="demand"    icon="🤖" label="수요 예측(ML)" />
-          <NavItem id="reports"   icon="📋" label="보고서" />
-          <NavItem id="settings"  icon="⚙️" label="설정" />
+
+          {/* === AI 메뉴들 === */}
+          <div style={{ margin: "12px 0 6px", color: "#94a3b8", fontSize: 12 }}>AI 기능</div>
+          <NavItem id="forecast" icon="🧠" label="수요 예측(ML)" />
+          <NavItem id="opt-inv" icon="🎯" label="재고 최적화(AI)" />
+          <NavItem id="routing" icon="🛣️" label="경로 최적화(AI)" />
+
+          <NavItem id="reports" icon="📋" label="보고서" />
+          <NavItem id="settings" icon="⚙️" label="설정" />
         </ul>
       </div>
 
@@ -469,13 +466,7 @@ export default function DashboardView() {
           {dashboardPage === "overview" && (
             <div className="dashboard-page active">
               <div className="stats-grid">
-                {[
-                  ["3", "운행 중인 차량"],
-                  ["₩1.2M", "오늘 총 매출"],
-                  ["47", "방문한 가구"],
-                  ["92%", "재고 회전율"],
-                  ["156", "총 등록 고객"],
-                ].map(([num, label]) => (
+                {[["3", "운행 중인 차량"], ["₩1.2M", "오늘 총 매출"], ["47", "방문한 가구"], ["92%", "재고 회전율"], ["156", "총 등록 고객"]].map(([num, label]) => (
                   <div className="stat-card" key={label}>
                     <div className="stat-number">{num}</div>
                     <div className="stat-label">{label}</div>
@@ -542,16 +533,8 @@ export default function DashboardView() {
 
               <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 25 }}>
                 <div>
-                  {alertErr && (
-                    <div className="alert alert-warning" style={{ marginBottom: 12 }}>
-                      {alertErr}
-                    </div>
-                  )}
-                  {loadingAlerts && (
-                    <div className="alert alert-info" style={{ marginBottom: 12 }}>
-                      알림 불러오는 중...
-                    </div>
-                  )}
+                  {alertErr && <div className="alert alert-warning" style={{ marginBottom: 12 }}>{alertErr}</div>}
+                  {loadingAlerts && <div className="alert alert-info" style={{ marginBottom: 12 }}>알림 불러오는 중...</div>}
                   {!loadingAlerts &&
                     (alerts.slice(0, 2).length ? (
                       alerts.slice(0, 2).map((a) => (
@@ -577,12 +560,8 @@ export default function DashboardView() {
                   <div style={{ textAlign: "center", padding: "20px 0" }}>
                     <div style={{ fontSize: 48, fontWeight: "bold" }}>+15%</div>
                     <p style={{ color: "#666", margin: "10px 0" }}>전일 대비 매출 증가</p>
-                    <div className="progress-bar">
-                      <div className="progress-fill" style={{ width: "78%" }} />
-                    </div>
-                    <p>
-                      <small>월 목표 달성률: 78%</small>
-                    </p>
+                    <div className="progress-bar"><div className="progress-fill" style={{ width: "78%" }} /></div>
+                    <p><small>월 목표 달성률: 78%</small></p>
                   </div>
                 </div>
               </div>
@@ -596,9 +575,7 @@ export default function DashboardView() {
                 <div className="card-header">
                   <div className="card-title">🚨 위기 알림 (규칙/예측 기반)</div>
                   <div style={{ display: "flex", gap: 8 }}>
-                    <button className="button button-secondary" onClick={fetchAlerts}>
-                      🔄 새로고침
-                    </button>
+                    <button className="button button-secondary" onClick={fetchAlerts}>🔄 새로고침</button>
                   </div>
                 </div>
 
@@ -621,9 +598,7 @@ export default function DashboardView() {
                           <small>{a.ts}</small>
                         </div>
                         <div>
-                          <button className="button" onClick={() => resolveAlert(a.id)}>
-                            ✅ 처리 완료
-                          </button>
+                          <button className="button" onClick={() => resolveAlert(a.id)}>✅ 처리 완료</button>
                         </div>
                       </div>
                     ))
@@ -641,21 +616,13 @@ export default function DashboardView() {
                 <div className="card-header">
                   <div className="card-title">📦 차량 재고 관리</div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <select
-                      value={vehicleId}
-                      onChange={(e) => setVehicleId(Number(e.target.value))}
-                      className="input"
-                      style={{ width: 140 }}
-                    >
+                    <select value={vehicleId} onChange={(e) => setVehicleId(Number(e.target.value))}
+                            className="input" style={{ width: 140 }}>
                       <option value={1}>A차량 (#1)</option>
                       <option value={2}>B차량 (#2)</option>
                     </select>
-                    <button className="button button-secondary" onClick={loadInventory} disabled={invLoading}>
-                      🔄 불러오기
-                    </button>
-                    <button className="button" onClick={saveInventory} disabled={invLoading}>
-                      💾 저장
-                    </button>
+                    <button className="button button-secondary" onClick={loadInventory} disabled={invLoading}>🔄 불러오기</button>
+                    <button className="button" onClick={saveInventory} disabled={invLoading}>💾 저장</button>
                   </div>
                 </div>
 
@@ -675,48 +642,23 @@ export default function DashboardView() {
                       {invItems.map((it, idx) => (
                         <tr key={idx}>
                           <td>
-                            <input
-                              className="input"
-                              inputMode="numeric"
-                              pattern="[0-9]*"
-                              value={it.product_id}
-                              onChange={(e) =>
-                                setInvItems((prev) =>
-                                  prev.map((row, i) => (i === idx ? { ...row, product_id: e.target.value.replace(/\D/g, "") } : row))
-                                )
-                              }
-                              placeholder="예: 101"
-                            />
+                            <input className="input" inputMode="numeric" pattern="[0-9]*" value={it.product_id}
+                                   onChange={(e) => setInvItems((prev) =>
+                                     prev.map((row, i) => (i === idx ? { ...row, product_id: e.target.value.replace(/\D/g, "") } : row))
+                                   )} placeholder="예: 101" />
                           </td>
                           <td>
-                            <input
-                              className="input"
-                              value={it.name ?? ""}
-                              onChange={(e) =>
-                                setInvItems((prev) =>
-                                  prev.map((row, i) => (i === idx ? { ...row, name: e.target.value } : row))
-                                )
-                              }
-                              placeholder="예: 두부"
-                            />
+                            <input className="input" value={it.name ?? ""} onChange={(e) =>
+                              setInvItems((prev) => prev.map((row, i) => (i === idx ? { ...row, name: e.target.value } : row)))} placeholder="예: 두부" />
                           </td>
                           <td>
-                            <input
-                              className="input"
-                              inputMode="numeric"
-                              pattern="[0-9]*"
-                              value={it.qty ?? 0}
-                              onChange={(e) =>
-                                setInvItems((prev) =>
-                                  prev.map((row, i) => (i === idx ? { ...row, qty: e.target.value.replace(/\D/g, "") } : row))
-                                )
-                              }
-                            />
+                            <input className="input" inputMode="numeric" pattern="[0-9]*" value={it.qty ?? 0}
+                                   onChange={(e) => setInvItems((prev) =>
+                                     prev.map((row, i) => (i === idx ? { ...row, qty: e.target.value.replace(/\D/g, "") } : row))
+                                   )} />
                           </td>
                           <td>
-                            <button className="button button-secondary" onClick={() => removeInvRow(idx)}>
-                              삭제
-                            </button>
+                            <button className="button button-secondary" onClick={() => removeInvRow(idx)}>삭제</button>
                           </td>
                         </tr>
                       ))}
@@ -724,15 +666,10 @@ export default function DashboardView() {
                   </table>
 
                   <div style={{ marginTop: 10 }}>
-                    <button className="button" onClick={addInvRow}>
-                      + 행 추가
-                    </button>
+                    <button className="button" onClick={addInvRow}>+ 행 추가</button>
                   </div>
                 </div>
               </div>
-
-              {/* 🔽 재고 최적화 (AI) 패널 */}
-              <InventoryOptimizeView />
             </div>
           )}
 
@@ -743,23 +680,15 @@ export default function DashboardView() {
                 <div className="card-header" style={{ flexWrap: "wrap" }}>
                   <div className="card-title">👥 고객 관리</div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <select
-                      value={custVillageId}
-                      onChange={(e) => setCustVillageId(e.target.value)}
-                      className="input"
-                      style={{ width: 140 }}
-                    >
+                    <select value={custVillageId} onChange={(e) => setCustVillageId(e.target.value)}
+                            className="input" style={{ width: 140 }}>
                       <option value="">전체 마을</option>
                       <option value="1">마을 #1</option>
                       <option value="2">마을 #2</option>
                       <option value="3">마을 #3</option>
                     </select>
-                    <button className="button button-secondary" onClick={loadCustomers} disabled={custLoading}>
-                      🔄 불러오기
-                    </button>
-                    <button className="button" onClick={startCreate}>
-                      + 신규 고객
-                    </button>
+                    <button className="button button-secondary" onClick={loadCustomers} disabled={custLoading}>🔄 불러오기</button>
+                    <button className="button" onClick={startCreate}>+ 신규 고객</button>
                   </div>
                 </div>
 
@@ -789,25 +718,15 @@ export default function DashboardView() {
                             <td className="nowrap">
                               {(c.tags || []).length ? (
                                 (c.tags || []).map((t, i) => (
-                                  <span key={i} className="tag" style={{ marginRight: 6 }}>
-                                    {t}
-                                  </span>
+                                  <span key={i} className="tag" style={{ marginRight: 6 }}>{t}</span>
                                 ))
-                              ) : (
-                                <span style={{ color: "#94a3b8" }}>-</span>
-                              )}
+                              ) : (<span style={{ color: "#94a3b8" }}>-</span>)}
                             </td>
                             <td className="nowrap">{c.last_visit ? fmtKRDate(c.last_visit) : "-"}</td>
                             <td className="nowrap">
-                              <button className="button button-secondary" onClick={() => startEdit(c)}>
-                                수정
-                              </button>{" "}
-                              <button className="button" onClick={() => markVisitNow(c)}>
-                                🕒 방문 처리
-                              </button>{" "}
-                              <button className="button" onClick={() => deleteCustomer(c)}>
-                                삭제
-                              </button>
+                              <button className="button button-secondary" onClick={() => startEdit(c)}>수정</button>{" "}
+                              <button className="button" onClick={() => markVisitNow(c)}>🕒 방문 처리</button>{" "}
+                              <button className="button" onClick={() => deleteCustomer(c)}>삭제</button>
                             </td>
                           </tr>
                         ))}
@@ -833,66 +752,35 @@ export default function DashboardView() {
                             <div className="pill">#{edit.id}</div>
                           </div>
                         )}
-
                         <div>
                           <div className="label-sm">이름</div>
-                          <input
-                            className="input"
-                            value={edit.name}
-                            onChange={(e) => setEdit((s) => ({ ...s, name: e.target.value }))}
-                          />
+                          <input className="input" value={edit.name}
+                                 onChange={(e) => setEdit((s) => ({ ...s, name: e.target.value }))} />
                         </div>
-
                         <div>
                           <div className="label-sm">마을 ID</div>
-                          <input
-                            className="input"
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            value={edit.village_id}
-                            onChange={(e) =>
-                              setEdit((s) => ({
-                                ...s,
-                                village_id: e.target.value.replace(/\D/g, ""),
-                              }))
-                            }
-                            placeholder="예: 1"
-                          />
+                          <input className="input" inputMode="numeric" pattern="[0-9]*" value={edit.village_id}
+                                 onChange={(e) => setEdit((s) => ({ ...s, village_id: e.target.value.replace(/\D/g, "") }))} placeholder="예: 1" />
                         </div>
-
                         <div>
                           <div className="label-sm">태그 (쉼표로 구분)</div>
-                          <input
-                            className="input"
-                            value={edit.tags_text ?? ""}
-                            onChange={(e) => setEdit((s) => ({ ...s, tags_text: e.target.value }))}
-                            placeholder="예: 고혈압, 저염식"
-                          />
+                          <input className="input" value={edit.tags_text ?? ""}
+                                 onChange={(e) => setEdit((s) => ({ ...s, tags_text: e.target.value }))}
+                                 placeholder="예: 고혈압, 저염식" />
                         </div>
-
                         <div>
                           <div className="label-sm">최근 방문(옵션, ISO8601)</div>
-                          <input
-                            className="input"
-                            value={edit.last_visit || ""}
-                            onChange={(e) => setEdit((s) => ({ ...s, last_visit: e.target.value }))}
-                            placeholder="예: 2025-08-13T09:00:00"
-                          />
+                          <input className="input" value={edit.last_visit || ""}
+                                 onChange={(e) => setEdit((s) => ({ ...s, last_visit: e.target.value }))}
+                                 placeholder="예: 2025-08-13T09:00:00" />
                         </div>
-
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                          <button className="button" onClick={saveCustomer}>
-                            💾 저장
-                          </button>
-                          <button className="button button-secondary" onClick={cancelEdit}>
-                            취소
-                          </button>
+                          <button className="button" onClick={saveCustomer}>💾 저장</button>
+                          <button className="button button-secondary" onClick={cancelEdit}>취소</button>
                         </div>
                       </div>
                     ) : (
-                      <div style={{ color: "#64748b" }}>
-                        좌측 목록에서 수정하거나 “신규 고객”을 눌러 추가하세요.
-                      </div>
+                      <div style={{ color: "#64748b" }}>좌측 목록에서 수정하거나 “신규 고객”을 눌러 추가하세요.</div>
                     )}
                   </div>
                 </div>
@@ -907,9 +795,7 @@ export default function DashboardView() {
                 <div className="card-header">
                   <div className="card-title">🚚 차량 현황</div>
                   <div style={{ display: "flex", gap: 8 }}>
-                    <button className="button button-secondary" onClick={loadVehicles} disabled={vehLoading}>
-                      🔄 새로고침
-                    </button>
+                    <button className="button button-secondary" onClick={loadVehicles} disabled={vehLoading}>🔄 새로고침</button>
                   </div>
                 </div>
 
@@ -930,25 +816,12 @@ export default function DashboardView() {
                           </small>
                         </div>
                         <div className="vehicle-info">
-                          <div className="info-item">
-                            <div className="info-label">좌표</div>
-                            <div className="info-value">
-                              {typeof v.lat === "number" ? v.lat.toFixed(4) : "-"},{" "}
-                              {typeof v.lon === "number" ? v.lon.toFixed(4) : "-"}
-                            </div>
+                          <div className="info-item"><div className="info-label">좌표</div>
+                            <div className="info-value">{typeof v.lat === "number" ? v.lat.toFixed(4) : "-"},{" "}{typeof v.lon === "number" ? v.lon.toFixed(4) : "-"}</div>
                           </div>
-                          <div className="info-item">
-                            <div className="info-label">속도</div>
-                            <div className="info-value">{Math.round(v.speed_kmh || 0)} km/h</div>
-                          </div>
-                          <div className="info-item">
-                            <div className="info-label">적재율</div>
-                            <div className="info-value">{Math.round(v.load_pct || 0)}%</div>
-                          </div>
-                          <div className="info-item">
-                            <div className="info-label">배터리</div>
-                            <div className="info-value">{Math.round(v.battery || 0)}%</div>
-                          </div>
+                          <div className="info-item"><div className="info-label">속도</div><div className="info-value">{Math.round(v.speed_kmh || 0)} km/h</div></div>
+                          <div className="info-item"><div className="info-label">적재율</div><div className="info-value">{Math.round(v.load_pct || 0)}%</div></div>
+                          <div className="info-item"><div className="info-label">배터리</div><div className="info-value">{Math.round(v.battery || 0)}%</div></div>
                         </div>
                       </div>
                     ))
@@ -966,10 +839,24 @@ export default function DashboardView() {
             </div>
           )}
 
-          {/* === 수요 예측(ML) — 복원 === */}
-          {dashboardPage === "demand" && (
+          {/* === 수요 예측(ML) === */}
+          {dashboardPage === "forecast" && (
             <div className="dashboard-page active">
               <DemandForecastView />
+            </div>
+          )}
+
+          {/* === 재고 최적화(AI) === */}
+          {dashboardPage === "opt-inv" && (
+            <div className="dashboard-page active">
+              <InventoryOptimizeView />
+            </div>
+          )}
+
+          {/* === 경로 최적화(AI) === */}
+          {dashboardPage === "routing" && (
+            <div className="dashboard-page active">
+              <RouteOptimizeView />
             </div>
           )}
 
@@ -977,29 +864,14 @@ export default function DashboardView() {
           {dashboardPage === "reports" && (
             <div className="dashboard-page active">
               <div className="card">
-                <div className="card-header">
-                  <div className="card-title">📋 보고서 생성 (AI/RAG)</div>
-                </div>
+                <div className="card-header"><div className="card-title">📋 보고서 생성 (AI/RAG)</div></div>
 
                 {/* 컨트롤 */}
-                <div
-                  style={{
-                    display: "grid",
-                    gap: 12,
-                    marginBottom: 16,
-                    gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))",
-                  }}
-                >
+                <div style={{ display: "grid", gap: 12, marginBottom: 16, gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))" }}>
                   <div>
                     <div className="label-sm">템플릿</div>
-                    <select
-                      className="input"
-                      value={repType}
-                      onChange={(e) => {
-                        setRepType(e.target.value);
-                        suggestRange(e.target.value);
-                      }}
-                    >
+                    <select className="input" value={repType}
+                            onChange={(e) => { setRepType(e.target.value); suggestRange(e.target.value); }}>
                       <option value="daily">일일 운영 보고서</option>
                       <option value="weekly">주간 매출 보고서</option>
                       <option value="monthly">월간 종합 보고서</option>
@@ -1025,13 +897,9 @@ export default function DashboardView() {
 
                 <div style={{ marginBottom: 12 }}>
                   <div className="label-sm">중점 사항(선택)</div>
-                  <textarea
-                    className="input"
-                    rows={3}
-                    value={repFocus}
-                    onChange={(e) => setRepFocus(e.target.value)}
-                    placeholder="예: 재고 부족 경고, 방문 가구 감소 원인, 각 마을별 매출 상/하위 항목을 강조해줘"
-                  />
+                  <textarea className="input" rows={3} value={repFocus}
+                            onChange={(e) => setRepFocus(e.target.value)}
+                            placeholder="예: 재고 부족 경고, 방문 가구 감소 원인, 각 마을별 매출 상/하위 항목을 강조해줘" />
                 </div>
 
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
@@ -1041,22 +909,14 @@ export default function DashboardView() {
                   {!!repResult.markdown || !!repResult.html ? (
                     <>
                       {repFormat === "markdown" && (
-                        <button
-                          className="button button-secondary"
-                          onClick={() =>
-                            downloadText(`itda_${repType}_${repFrom}_${repTo}.md`, repResult.markdown || "")
-                          }
-                        >
+                        <button className="button button-secondary"
+                                onClick={() => downloadText(`itda_${repType}_${repFrom}_${repTo}.md`, repResult.markdown || "")}>
                           ⬇️ Markdown 저장
                         </button>
                       )}
                       {repFormat === "html" && (
-                        <button
-                          className="button button-secondary"
-                          onClick={() =>
-                            downloadText(`itda_${repType}_${repFrom}_${repTo}.html`, repResult.html || "")
-                          }
-                        >
+                        <button className="button button-secondary"
+                                onClick={() => downloadText(`itda_${repType}_${repFrom}_${repTo}.html`, repResult.html || "")}>
                           ⬇️ HTML 저장
                         </button>
                       )}
@@ -1072,22 +932,11 @@ export default function DashboardView() {
                   {!repLoading && !repResult.markdown && !repResult.html ? (
                     <div className="chart-placeholder">우측 상단 ‘🖨️ PDF로 저장’ 버튼은 보고서 생성 후 활성화됩니다.</div>
                   ) : repFormat === "html" ? (
-                    <div
-                      style={{ background: "#fff", border: "1px solid #eef2f7", borderRadius: 8, padding: 16 }}
-                      dangerouslySetInnerHTML={{ __html: repResult.html || "<p>(빈 문서)</p>" }}
-                    />
+                    <div style={{ background: "#fff", border: "1px solid #eef2f7", borderRadius: 8, padding: 16 }}
+                         dangerouslySetInnerHTML={{ __html: repResult.html || "<p>(빈 문서)</p>" }} />
                   ) : (
-                    <pre
-                      style={{
-                        whiteSpace: "pre-wrap",
-                        background: "#fff",
-                        border: "1px solid #eef2f7",
-                        borderRadius: 8,
-                        padding: 16,
-                        fontFamily:
-                          "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
-                      }}
-                    >
+                    <pre style={{ whiteSpace: "pre-wrap", background: "#fff", border: "1px solid #eef2f7",
+                                  borderRadius: 8, padding: 16, fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace" }}>
 {repResult.markdown || "(빈 문서)"}
                     </pre>
                   )}
@@ -1099,9 +948,7 @@ export default function DashboardView() {
           {/* === 설정 === */}
           {dashboardPage === "settings" && (
             <div className="dashboard-page active">
-              <div className="card">
-                <div className="card-title">⚙️ 설정</div>
-              </div>
+              <div className="card"><div className="card-title">⚙️ 설정</div></div>
             </div>
           )}
         </div>
