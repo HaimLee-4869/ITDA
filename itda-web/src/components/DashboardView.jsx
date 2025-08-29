@@ -2,6 +2,9 @@
 import { useState, useEffect } from "react";
 import { getJSON, postJSON, patchJSON, delJSON } from "../api";
 import AnalyticsView from "./AnalyticsView";
+import DemandForecastView from "./DemandForecastView";
+import InventoryOptimizeView from "./InventoryOptimizeView";
+
 
 // ===== 작은 유틸 =====
 const fmtKRDate = (d) => new Date(d).toLocaleString("ko-KR");
@@ -368,7 +371,6 @@ export default function DashboardView() {
 
   // ===== PDF/Print =====
   const printReport = () => {
-    // 보고서가 없으면 막기
     const hasDoc = (repFormat === "html" && repResult.html) || (repFormat === "markdown" && repResult.markdown);
     if (!hasDoc) {
       alert("출력할 보고서가 없습니다. 먼저 ‘AI로 보고서 생성’을 눌러주세요.");
@@ -398,7 +400,7 @@ export default function DashboardView() {
     `);
     w.document.close();
     w.focus();
-    w.print(); // 사용자가 PDF로 저장 선택 가능
+    w.print();
   };
 
   const downloadText = (filename, text) => {
@@ -421,7 +423,6 @@ export default function DashboardView() {
     </li>
   );
 
-  // ====== UI ======
   const headerHasPrintable =
     dashboardPage === "reports" &&
     ((repFormat === "html" && !!repResult.html) || (repFormat === "markdown" && !!repResult.markdown));
@@ -432,14 +433,16 @@ export default function DashboardView() {
       <div className="dashboard-sidebar">
         <h3>📊 잇다 관리자</h3>
         <ul>
-          <NavItem id="overview" icon="🏠" label="대시보드" />
-          <NavItem id="vehicles" icon="🚚" label="차량 관리" />
+          <NavItem id="overview"  icon="🏠" label="대시보드" />
+          <NavItem id="vehicles"  icon="🚚" label="차량 관리" />
           <NavItem id="inventory" icon="📦" label="재고 관리" />
           <NavItem id="customers" icon="👥" label="고객 관리" />
-          <NavItem id="alerts" icon="🚨" label="위기 알림" />
+          <NavItem id="alerts"    icon="🚨" label="위기 알림" />
           <NavItem id="analytics" icon="📈" label="매출 분석" />
-          <NavItem id="reports" icon="📋" label="보고서" />
-          <NavItem id="settings" icon="⚙️" label="설정" />
+          {/* 👉 수요 예측(ML) 항목 복원 */}
+          <NavItem id="demand"    icon="🤖" label="수요 예측(ML)" />
+          <NavItem id="reports"   icon="📋" label="보고서" />
+          <NavItem id="settings"  icon="⚙️" label="설정" />
         </ul>
       </div>
 
@@ -727,6 +730,9 @@ export default function DashboardView() {
                   </div>
                 </div>
               </div>
+
+              {/* 🔽 재고 최적화 (AI) 패널 */}
+              <InventoryOptimizeView />
             </div>
           )}
 
@@ -960,7 +966,14 @@ export default function DashboardView() {
             </div>
           )}
 
-          {/* === 보고서 (AI/RAG) — 타일 제거 === */}
+          {/* === 수요 예측(ML) — 복원 === */}
+          {dashboardPage === "demand" && (
+            <div className="dashboard-page active">
+              <DemandForecastView />
+            </div>
+          )}
+
+          {/* === 보고서 === */}
           {dashboardPage === "reports" && (
             <div className="dashboard-page active">
               <div className="card">
