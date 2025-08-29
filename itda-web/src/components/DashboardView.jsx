@@ -6,26 +6,11 @@ import AnalyticsView from "./AnalyticsView"; // AnalyticsView 컴포넌트 impor
 export default function DashboardView() {
   const [dashboardPage, setDashboardPage] = useState("overview");
 
-  // Alerts
+  // ===== Alerts =====
   const [alerts, setAlerts] = useState([]);
   const [loadingAlerts, setLoadingAlerts] = useState(false);
   const [alertErr, setAlertErr] = useState("");
 
-  // Inventory
-  const [vehicleId, setVehicleId] = useState(1);
-  const [invItems, setInvItems] = useState([]);
-  const [invLoading, setInvLoading] = useState(false);
-  const [invErr, setInvErr] = useState("");
-
-  // Customers
-  const [custVillageId, setCustVillageId] = useState("");
-  const [customers, setCustomers] = useState([]);
-  const [custLoading, setCustLoading] = useState(false);
-  const [custErr, setCustErr] = useState("");
-  const [edit, setEdit] = useState(null); // {id?, name, village_id, tags, last_visit, tags_text}
-  const [creating, setCreating] = useState(false);
-
-  // ===== Alerts =====
   const fetchAlerts = async () => {
     try {
       setLoadingAlerts(true);
@@ -48,7 +33,30 @@ export default function DashboardView() {
     }
   };
 
+  // ===== Vehicles (Overview & Vehicles 탭 공용) =====
+  const [vehicles, setVehicles] = useState([]);
+  const [vehLoading, setVehLoading] = useState(false);
+  const [vehErr, setVehErr] = useState("");
+
+  const loadVehicles = async () => {
+    try {
+      setVehLoading(true);
+      setVehErr("");
+      const data = await getJSON("/vehicles/list");
+      setVehicles(data.vehicles || []);
+    } catch (e) {
+      setVehErr(e.message || "차량 현황 조회 중 오류가 발생했어요.");
+    } finally {
+      setVehLoading(false);
+    }
+  };
+
   // ===== Inventory =====
+  const [vehicleId, setVehicleId] = useState(1);
+  const [invItems, setInvItems] = useState([]);
+  const [invLoading, setInvLoading] = useState(false);
+  const [invErr, setInvErr] = useState("");
+
   const loadInventory = async () => {
     try {
       setInvLoading(true);
@@ -65,7 +73,6 @@ export default function DashboardView() {
   const addInvRow = () => {
     setInvItems((prev) => [...prev, { product_id: "", name: "", qty: 0 }]);
   };
-
   const removeInvRow = (idx) => {
     setInvItems((prev) => prev.filter((_, i) => i !== idx));
   };
@@ -90,6 +97,13 @@ export default function DashboardView() {
   };
 
   // ===== Customers =====
+  const [custVillageId, setCustVillageId] = useState("");
+  const [customers, setCustomers] = useState([]);
+  const [custLoading, setCustLoading] = useState(false);
+  const [custErr, setCustErr] = useState("");
+  const [edit, setEdit] = useState(null); // {id?, name, village_id, tags, last_visit, tags_text}
+  const [creating, setCreating] = useState(false);
+
   const loadCustomers = async () => {
     try {
       setCustLoading(true);
@@ -99,6 +113,7 @@ export default function DashboardView() {
       setCustomers(data.customers ?? []);
     } catch (e) {
       setCustErr(e.message || "고객 조회 중 오류가 발생했어요.");
+      setCustomers([]); // 실패해도 UI는 보이도록
     } finally {
       setCustLoading(false);
     }
@@ -111,7 +126,6 @@ export default function DashboardView() {
       village_id: 1,
       tags: [],
       last_visit: "",
-      // 👇 태그 입력 원문을 별도로 보관 (쉼표/공백 허용)
       tags_text: "",
     });
   };
@@ -124,7 +138,6 @@ export default function DashboardView() {
       village_id: row.village_id,
       tags: row.tags ?? [],
       last_visit: row.last_visit || "",
-      // 👇 현재 태그 배열을 사람이 읽기 좋게 초기화
       tags_text: (row.tags || []).join(", "),
     });
   };
@@ -138,8 +151,6 @@ export default function DashboardView() {
         alert("이름과 마을 ID(양수)는 필수입니다.");
         return;
       }
-
-      // 👇 저장 시에만 문자열을 배열로 파싱
       const parsedTags = (edit?.tags_text || "")
         .split(",")
         .map((t) => t.trim())
@@ -187,9 +198,34 @@ export default function DashboardView() {
     }
   };
 
+  // ===== 초기 로딩 =====
   useEffect(() => {
     fetchAlerts();
   }, []);
+
+  // 개요/차량 탭 진입시 차량 상태 로드
+  useEffect(() => {
+    if (dashboardPage === "overview" || dashboardPage === "vehicles") {
+      loadVehicles();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dashboardPage]);
+
+  // ✅ 고객 관리 탭 들어오면 자동 로드
+  useEffect(() => {
+    if (dashboardPage === "customers") {
+      loadCustomers();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dashboardPage]);
+
+  // ✅ 마을 필터 변경 시 자동 재조회 (고객 탭일 때만)
+  useEffect(() => {
+    if (dashboardPage === "customers") {
+      loadCustomers();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [custVillageId]);
 
   const NavItem = ({ id, icon, label }) => (
     <li
@@ -261,11 +297,58 @@ export default function DashboardView() {
               <div className="card">
                 <div className="card-header">
                   <div className="card-title">🗺️ 실시간 차량 위치 및 상태</div>
-                  <button className="button button-secondary" onClick={fetchAlerts}>
-                    🔄 알림 새로고침
-                  </button>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button className="button button-secondary" onClick={loadVehicles} disabled={vehLoading}>
+                      🚚 차량 새로고침
+                    </button>
+                    <button className="button button-secondary" onClick={fetchAlerts} disabled={loadingAlerts}>
+                      🔔 알림 새로고침
+                    </button>
+                  </div>
                 </div>
-                <div className="chart-placeholder">🗺️ 지도/차량 현황(데모)</div>
+
+                {vehErr && <div className="alert alert-warning">{vehErr}</div>}
+                {vehLoading && <div className="alert alert-info">차량 정보를 불러오는 중...</div>}
+                {!vehLoading &&
+                  (vehicles.length ? (
+                    vehicles.slice(0, 2).map((v) => (
+                      <div key={v.id} className="vehicle-card">
+                        <div className="vehicle-header">
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <b>{v.name}</b>
+                            <span className="pill">#{v.id}</span>
+                            <span className="customer-status status-active">{v.status}</span>
+                          </div>
+                          <small style={{ color: "#64748b" }}>
+                            최근 갱신: {v.last_ping ? new Date(v.last_ping).toLocaleString("ko-KR") : "-"}
+                          </small>
+                        </div>
+                        <div className="vehicle-info">
+                          <div className="info-item">
+                            <div className="info-label">좌표</div>
+                            <div className="info-value">
+                              {typeof v.lat === "number" ? v.lat.toFixed(4) : "-"},{" "}
+                              {typeof v.lon === "number" ? v.lon.toFixed(4) : "-"}
+                            </div>
+                          </div>
+                          <div className="info-item">
+                            <div className="info-label">속도</div>
+                            <div className="info-value">{Math.round(v.speed_kmh || 0)} km/h</div>
+                          </div>
+                          <div className="info-item">
+                            <div className="info-label">적재율</div>
+                            <div className="info-value">{Math.round(v.load_pct || 0)}%</div>
+                          </div>
+                          <div className="info-item">
+                            <div className="info-label">배터리</div>
+                            <div className="info-value">{Math.round(v.battery || 0)}%</div>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="chart-placeholder">차량 데이터가 없습니다.</div>
+                  ))}
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 25 }}>
@@ -285,9 +368,7 @@ export default function DashboardView() {
                       alerts.slice(0, 2).map((a) => (
                         <div
                           key={a.id}
-                          className={`alert ${
-                            a.type === "emergency" ? "alert-danger" : "alert-warning"
-                          }`}
+                          className={`alert ${a.type === "emergency" ? "alert-danger" : "alert-warning"}`}
                           style={{ marginBottom: 12 }}
                         >
                           <strong>{a.type === "emergency" ? "🚨 긴급 알림" : "⚠️ 주의 알림"}</strong>
@@ -340,9 +421,7 @@ export default function DashboardView() {
                     alerts.map((a) => (
                       <div
                         key={a.id}
-                        className={`alert ${
-                          a.type === "emergency" ? "alert-danger" : "alert-warning"
-                        }`}
+                        className={`alert ${a.type === "emergency" ? "alert-danger" : "alert-warning"}`}
                         style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}
                       >
                         <div>
@@ -493,6 +572,7 @@ export default function DashboardView() {
                 </div>
 
                 {custErr && <div className="alert alert-warning">{custErr}</div>}
+                {custLoading && <div className="alert alert-info">불러오는 중...</div>}
 
                 <div className="chart-placeholder" style={{ display: "grid", gridTemplateColumns: "1.8fr 1.2fr", gap: 18 }}>
                   {/* 목록 */}
@@ -575,7 +655,6 @@ export default function DashboardView() {
 
                         <div>
                           <div className="label-sm">마을 ID</div>
-                          {/* 숫자 인풋의 휠 증감 문제를 피하기 위해 text+numeric 패턴 사용 */}
                           <input
                             className="input"
                             inputMode="numeric"
@@ -593,7 +672,6 @@ export default function DashboardView() {
 
                         <div>
                           <div className="label-sm">태그 (쉼표로 구분)</div>
-                          {/* 👇 이제 쉼표/공백 그대로 입력 가능; 저장시에만 파싱 */}
                           <input
                             className="input"
                             value={edit.tags_text ?? ""}
@@ -632,12 +710,62 @@ export default function DashboardView() {
             </div>
           )}
 
-          {/* === 차량/기타 데모 === */}
+          {/* === 차량 관리 === */}
           {dashboardPage === "vehicles" && (
             <div className="dashboard-page active">
               <div className="card">
-                <div className="card-title">🚚 차량 현황</div>
-                <div className="chart-placeholder">차량 리스트/상태(데모)</div>
+                <div className="card-header">
+                  <div className="card-title">🚚 차량 현황</div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button className="button button-secondary" onClick={loadVehicles} disabled={vehLoading}>
+                      🔄 새로고침
+                    </button>
+                  </div>
+                </div>
+
+                {vehErr && <div className="alert alert-warning">{vehErr}</div>}
+                {vehLoading && <div className="alert alert-info">불러오는 중...</div>}
+
+                {!vehLoading &&
+                  (vehicles.length ? (
+                    vehicles.map((v) => (
+                      <div key={v.id} className="vehicle-card">
+                        <div className="vehicle-header">
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <b>{v.name}</b>
+                            <span className="pill">#{v.id}</span>
+                            <span className="customer-status status-active">{v.status}</span>
+                          </div>
+                          <small style={{ color: "#64748b" }}>
+                            최근 갱신: {v.last_ping ? new Date(v.last_ping).toLocaleString("ko-KR") : "-"}
+                          </small>
+                        </div>
+                        <div className="vehicle-info">
+                          <div className="info-item">
+                            <div className="info-label">좌표</div>
+                            <div className="info-value">
+                              {typeof v.lat === "number" ? v.lat.toFixed(4) : "-"},{" "}
+                              {typeof v.lon === "number" ? v.lon.toFixed(4) : "-"}
+                            </div>
+                          </div>
+                          <div className="info-item">
+                            <div className="info-label">속도</div>
+                            <div className="info-value">{Math.round(v.speed_kmh || 0)} km/h</div>
+                          </div>
+                          <div className="info-item">
+                            <div className="info-label">적재율</div>
+                            <div className="info-value">{Math.round(v.load_pct || 0)}%</div>
+                          </div>
+                          <div className="info-item">
+                            <div className="info-label">배터리</div>
+                            <div className="info-value">{Math.round(v.battery || 0)}%</div>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="alert alert-info">차량 데이터가 없습니다. 상단에서 새로고침을 눌러주세요.</div>
+                  ))}
               </div>
             </div>
           )}
