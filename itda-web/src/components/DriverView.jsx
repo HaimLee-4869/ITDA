@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { getJSON, postJSON } from "../api";
 import useSpeech from "../hooks/useSpeech";
+import SalesView from "./SalesView" // SalesView 컴포넌트 import
 
 export default function DriverView() {
   const [driverPage, setDriverPage] = useState("home");
@@ -345,11 +346,11 @@ export default function DriverView() {
             </div>
           )}
 
-          {/* 매출 (데모) */}
+          {/* 매출 (데모) -> SalesView 컴포넌트로 교체 */}
           {driverPage === "sales" && (
             <div className="card">
               <div className="card-title">💰 매출 현황</div>
-              <div className="chart-placeholder">일/주/월 매출 추이(데모)</div>
+              <SalesView />
             </div>
           )}
 
@@ -393,4 +394,5 @@ export default function DriverView() {
       </div>
     </div>
   );
+  
 }
