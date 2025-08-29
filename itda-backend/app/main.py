@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from .db import create_db_and_tables
-from .routers import route, demand, care, alerts, inventory
+from .routers import route, demand, care, alerts, inventory, sales
 
 BASE_DIR = Path(__file__).resolve().parent  # app 디렉터리
 STATIC_DIR = BASE_DIR / "static"
@@ -60,3 +60,4 @@ app.include_router(demand.router,    prefix="/demand",    tags=["demand"])
 app.include_router(care.router,      prefix="/care",      tags=["care"])
 app.include_router(alerts.router,    prefix="/alerts",    tags=["alerts"])
 app.include_router(inventory.router, prefix="/inventory", tags=["inventory"])
+app.include_router(sales.router,     prefix="/sales",     tags=["sales"])
