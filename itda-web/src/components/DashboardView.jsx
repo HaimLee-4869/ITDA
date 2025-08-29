@@ -112,6 +112,7 @@ export default function DashboardView() {
       setCustomers(data.customers ?? []);
     } catch (e) {
       setCustErr(e.message || "고객 조회 중 오류가 발생했어요.");
+      setCustomers([]); // 실패해도 UI는 보이도록
     } finally {
       setCustLoading(false);
     }
@@ -209,6 +210,22 @@ export default function DashboardView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dashboardPage]);
 
+  // ✅ 고객 관리 탭 들어오면 자동 로드
+  useEffect(() => {
+    if (dashboardPage === "customers") {
+      loadCustomers();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dashboardPage]);
+
+  // ✅ 마을 필터 변경 시 자동 재조회 (고객 탭일 때만)
+  useEffect(() => {
+    if (dashboardPage === "customers") {
+      loadCustomers();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [custVillageId]);
+
   const NavItem = ({ id, icon, label }) => (
     <li
       className={`${dashboardPage === id ? "active" : ""}`}
@@ -289,7 +306,6 @@ export default function DashboardView() {
                   </div>
                 </div>
 
-                {/* 지도 대신 간단한 “요약 카드” 2개 표시 (가벼운 개요용) */}
                 {vehErr && <div className="alert alert-warning">{vehErr}</div>}
                 {vehLoading && <div className="alert alert-info">차량 정보를 불러오는 중...</div>}
                 {!vehLoading &&
@@ -351,9 +367,7 @@ export default function DashboardView() {
                       alerts.slice(0, 2).map((a) => (
                         <div
                           key={a.id}
-                          className={`alert ${
-                            a.type === "emergency" ? "alert-danger" : "alert-warning"
-                          }`}
+                          className={`alert ${a.type === "emergency" ? "alert-danger" : "alert-warning"}`}
                           style={{ marginBottom: 12 }}
                         >
                           <strong>{a.type === "emergency" ? "🚨 긴급 알림" : "⚠️ 주의 알림"}</strong>
@@ -406,9 +420,7 @@ export default function DashboardView() {
                     alerts.map((a) => (
                       <div
                         key={a.id}
-                        className={`alert ${
-                          a.type === "emergency" ? "alert-danger" : "alert-warning"
-                        }`}
+                        className={`alert ${a.type === "emergency" ? "alert-danger" : "alert-warning"}`}
                         style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}
                       >
                         <div>
@@ -525,6 +537,172 @@ export default function DashboardView() {
                     <button className="button" onClick={addInvRow}>
                       + 행 추가
                     </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* === 고객 관리 === */}
+          {dashboardPage === "customers" && (
+            <div className="dashboard-page active">
+              <div className="card">
+                <div className="card-header" style={{ flexWrap: "wrap" }}>
+                  <div className="card-title">👥 고객 관리</div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <select
+                      value={custVillageId}
+                      onChange={(e) => setCustVillageId(e.target.value)}
+                      className="input"
+                      style={{ width: 140 }}
+                    >
+                      <option value="">전체 마을</option>
+                      <option value="1">마을 #1</option>
+                      <option value="2">마을 #2</option>
+                      <option value="3">마을 #3</option>
+                    </select>
+                    <button className="button button-secondary" onClick={loadCustomers} disabled={custLoading}>
+                      🔄 불러오기
+                    </button>
+                    <button className="button" onClick={startCreate}>
+                      + 신규 고객
+                    </button>
+                  </div>
+                </div>
+
+                {custErr && <div className="alert alert-warning">{custErr}</div>}
+                {custLoading && <div className="alert alert-info">불러오는 중...</div>}
+
+                <div className="chart-placeholder" style={{ display: "grid", gridTemplateColumns: "1.8fr 1.2fr", gap: 18 }}>
+                  {/* 목록 */}
+                  <div style={{ overflowX: "auto" }}>
+                    <table className="table-plain fixed">
+                      <thead>
+                        <tr>
+                          <th className="th-id">ID</th>
+                          <th className="th-name">이름</th>
+                          <th className="th-village">마을</th>
+                          <th className="th-tags">태그</th>
+                          <th className="th-last">최근방문</th>
+                          <th className="th-actions"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {customers.map((c) => (
+                          <tr key={c.id} className={edit?.id === c.id ? "row-active" : ""}>
+                            <td>#{c.id}</td>
+                            <td className="nowrap">{c.name}</td>
+                            <td className="nowrap">#{c.village_id}</td>
+                            <td className="nowrap">
+                              {(c.tags || []).length ? (
+                                (c.tags || []).map((t, i) => (
+                                  <span key={i} className="tag" style={{ marginRight: 6 }}>
+                                    {t}
+                                  </span>
+                                ))
+                              ) : (
+                                <span style={{ color: "#94a3b8" }}>-</span>
+                              )}
+                            </td>
+                            <td className="nowrap">
+                              {c.last_visit ? new Date(c.last_visit).toLocaleString("ko-KR") : "-"}
+                            </td>
+                            <td className="nowrap">
+                              <button className="button button-secondary" onClick={() => startEdit(c)}>
+                                수정
+                              </button>{" "}
+                              <button className="button" onClick={() => markVisitNow(c)}>
+                                🕒 방문 처리
+                              </button>{" "}
+                              <button className="button" onClick={() => deleteCustomer(c)}>
+                                삭제
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                        {!customers.length && !custLoading && (
+                          <tr>
+                            <td colSpan={6} style={{ textAlign: "center", color: "#64748b" }}>
+                              데이터가 없습니다. 상단에서 불러오기를 눌러주세요.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* 편집 패널 */}
+                  <div className="card" style={{ margin: 0 }}>
+                    <div className="card-title">{creating ? "➕ 신규 고객" : edit ? "✏️ 고객 수정" : "정보"}</div>
+                    {edit ? (
+                      <div style={{ display: "grid", gap: 10 }}>
+                        {!creating && (
+                          <div>
+                            <div className="label-sm">ID</div>
+                            <div className="pill">#{edit.id}</div>
+                          </div>
+                        )}
+
+                        <div>
+                          <div className="label-sm">이름</div>
+                          <input
+                            className="input"
+                            value={edit.name}
+                            onChange={(e) => setEdit((s) => ({ ...s, name: e.target.value }))}
+                          />
+                        </div>
+
+                        <div>
+                          <div className="label-sm">마을 ID</div>
+                          <input
+                            className="input"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            value={edit.village_id}
+                            onChange={(e) =>
+                              setEdit((s) => ({
+                                ...s,
+                                village_id: e.target.value.replace(/\D/g, ""),
+                              }))
+                            }
+                            placeholder="예: 1"
+                          />
+                        </div>
+
+                        <div>
+                          <div className="label-sm">태그 (쉼표로 구분)</div>
+                          <input
+                            className="input"
+                            value={edit.tags_text ?? ""}
+                            onChange={(e) => setEdit((s) => ({ ...s, tags_text: e.target.value }))}
+                            placeholder="예: 고혈압, 저염식"
+                          />
+                        </div>
+
+                        <div>
+                          <div className="label-sm">최근 방문(옵션, ISO8601)</div>
+                          <input
+                            className="input"
+                            value={edit.last_visit || ""}
+                            onChange={(e) => setEdit((s) => ({ ...s, last_visit: e.target.value }))}
+                            placeholder="예: 2025-08-13T09:00:00"
+                          />
+                        </div>
+
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          <button className="button" onClick={saveCustomer}>
+                            💾 저장
+                          </button>
+                          <button className="button button-secondary" onClick={cancelEdit}>
+                            취소
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ color: "#64748b" }}>
+                        좌측 목록에서 수정하거나 “신규 고객”을 눌러 추가하세요.
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
