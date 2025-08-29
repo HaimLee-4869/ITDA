@@ -64,55 +64,61 @@ def build_dist_matrix(
 # ====== TSP solver (open path: start -> visit all -> stop) ======
 def tsp_open_path_exact(D: List[List[float]]) -> Tuple[float, List[int]]:
     """
-    Held–Karp DP.
+    Held–Karp DP (open path).
     - Nodes: 1..n (villages), 0 = start only.
     - Minimize cost: start(0) -> ... -> end(any)
     Returns (min_cost, order of villages as indices 1..n).
     NOTE: O(n^2 2^n) — n<=14 권장.
     """
-    n = len(D) - 1
+    n = len(D) - 1  # number of villages
     if n == 0:
         return 0.0, []
+    if n == 1:
+        return float(D[0][1]), [1]
 
-    # dp[mask][j] = (cost, prev) visiting mask (bits over 1..n), ending at j(1..n)
+    # dp[mask][j] = (cost, prev) :
+    #   start(0)에서 시작, mask(1..n 비트) 방문 상태로 j(1..n)에서 끝났을 때 최소 비용과 이전 노드
     dp: List[Dict[int, Tuple[float, Optional[int]]]] = [dict() for _ in range(1 << n)]
+
+    # 초기: start -> j
     for j in range(1, n + 1):
         mask = 1 << (j - 1)
-        dp[mask][j] = (D[0][j], 0)
+        dp[mask][j] = (float(D[0][j]), 0)
 
+    # 전개: 존재하는 상태만 확장
     for mask in range(1 << n):
-        if mask == 0:
-            continue
-        for j, (cost_j, _) in list(dp[mask].items()):
-            prev_mask = mask ^ (1 << (j - 1))
-            if prev_mask == 0:
-                continue
-            # relax from any k in prev_mask to j
-            for k, (cost_k, _) in dp[prev_mask].items():
-                new_cost = cost_k + D[k][j]
-                if j not in dp[mask] or new_cost < dp[mask][j][0]:
-                    dp[mask][j] = (new_cost, k)
+        for j, (cost_j, _prev) in list(dp[mask].items()):
+            # j에서 방문 안 한 k로 확장
+            for k in range(1, n + 1):
+                if mask & (1 << (k - 1)):
+                    continue
+                nmask = mask | (1 << (k - 1))
+                new_cost = cost_j + float(D[j][k])
+                if (k not in dp[nmask]) or (new_cost < dp[nmask][k][0]):
+                    dp[nmask][k] = (new_cost, j)
 
     full = (1 << n) - 1
-    # choose best end j
-    best_cost = float("inf")
-    end_j = 1
-    for j, (c, _) in dp[full].items():
-        if c < best_cost:
-            best_cost = c
-            end_j = j
+    if not dp[full]:
+        raise ValueError("DP table empty at full mask")
 
-    # reconstruct
+    # 끝점 선택(열린 경로)
+    end = min(dp[full].keys(), key=lambda j: dp[full][j][0])
+    best_cost = dp[full][end][0]
+
+    # 경로 복원 (항상 실제로 존재하는 상태만 추적)
     order_rev: List[int] = []
     mask = full
-    j = end_j
-    while j != 0:
+    j = end
+    while True:
         order_rev.append(j)
-        _, prev = dp[mask][j]
+        _cost, prev = dp[mask][j]
+        if prev == 0:
+            break
         mask ^= 1 << (j - 1)
-        j = prev if prev is not None else 0
-    order = list(reversed(order_rev))
-    return best_cost, order  # order contains indices in 1..n
+        j = prev  # prev는 1..n
+
+    order = list(reversed(order_rev))  # indices 1..n
+    return best_cost, order
 
 
 def tsp_greedy_2opt(D: List[List[float]]) -> Tuple[float, List[int]]:
@@ -167,8 +173,12 @@ def optimize(req: RouteReq):
     D = build_dist_matrix(start, villages)
 
     n = len(villages)
+    # 정확해(<=14)는 DP 사용, 실패 시 폴백
     if n <= 14:
-        total_km, order_idx = tsp_open_path_exact(D)
+        try:
+            total_km, order_idx = tsp_open_path_exact(D)
+        except Exception:
+            total_km, order_idx = tsp_greedy_2opt(D)
     else:
         total_km, order_idx = tsp_greedy_2opt(D)
 
@@ -176,7 +186,6 @@ def optimize(req: RouteReq):
     # order_idx: e.g. [3,1,2] meaning visit villages[2] -> villages[0] -> villages[1]
     ordered = []
     now = datetime.now()
-    elapsed_min = 0.0
 
     def eta_after_km(km: float) -> datetime:
         minutes = (km / AVG_SPEED_KMPH) * 60.0
