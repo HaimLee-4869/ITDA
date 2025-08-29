@@ -350,7 +350,6 @@ export default function DriverView() {
           {driverPage === "sales" && (
             <div className="card">
               <div className="card-title">💰 매출 현황</div>
-              <div className="chart-placeholder">일/주/월 매출 추이(데모)</div>
               <SalesView />
             </div>
           )}
