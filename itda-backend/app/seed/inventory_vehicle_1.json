@@ -1,0 +1,7 @@
+{
+  "items": [
+    { "product_id": 101, "name": "두부", "qty": 12 },
+    { "product_id": 102, "name": "계란", "qty": 18 },
+    { "product_id": 103, "name": "채소", "qty": 10 }
+  ]
+}
