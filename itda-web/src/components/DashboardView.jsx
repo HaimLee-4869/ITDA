@@ -1,6 +1,7 @@
 // src/components/DashboardView.jsx
 import { useState, useEffect } from "react";
 import { getJSON, postJSON, patchJSON, delJSON } from "../api";
+import AnalyticsView from "./AnalyticsView"; // AnalyticsView 컴포넌트 import
 
 export default function DashboardView() {
   const [dashboardPage, setDashboardPage] = useState("overview");
@@ -771,10 +772,7 @@ export default function DashboardView() {
 
           {dashboardPage === "analytics" && (
             <div className="dashboard-page active">
-              <div className="card">
-                <div className="card-title">📈 매출 분석</div>
-                <div className="chart-placeholder">차트(데모)</div>
-              </div>
+              <AnalyticsView />
             </div>
           )}
 
