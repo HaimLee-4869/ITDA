@@ -1,0 +1,105 @@
+/* --- 상단 액션(날짜/버튼) : 버튼 글자 여백 개선 --- */
+.nbs-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.nbs-actions .input {
+  height: 36px;
+}
+.nbs-actions .button {
+  height: 36px;
+  padding: 0 14px;        /* ⬅️ 여백 늘림 */
+  min-width: 132px;       /* ⬅️ 글자 여유 */
+  font-weight: 600;
+}
+.nbs-actions .nbs-run {
+  background: #178a3b;
+  color: #fff;
+}
+.nbs-actions .helper {
+  margin-left: 6px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* --- 레이아웃: 지도(위) + 랭킹(아래) --- */
+.nbs-stack {
+  display: grid;
+  grid-template-rows: auto auto;
+  gap: 12px;
+}
+.nbs-map {
+  width: 100%;
+  height: 340px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* --- Next Best Stop 오른쪽 랭킹 표(이제 아래로) --- */
+.nbs-list {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+}
+.nbs-list-header,
+.nbs-row {
+  display: grid;
+  grid-template-columns: 100px 1fr 160px 80px; /* 순위 | 마을 | 예측 | 거리 */
+  align-items: center;
+  column-gap: 12px;
+}
+.nbs-list-header {
+  font-weight: 700;
+  color: #64748b;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 6px 4px;
+}
+.nbs-row {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.nbs-rank { display: flex; align-items: center; gap: 6px; }
+.pill {
+  display: inline-flex;
+  width: 24px; height: 24px;
+  align-items: center; justify-content: center;
+  border-radius: 9999px; color: #fff; font-weight: 700;
+}
+.rank-1 { background: #22c55e; }
+.rank-2 { background: #f59e0b; }
+.rank-3 { background: #ef4444; }
+.star  { color: #f59e0b; }
+.score { font-weight: 700; }
+
+.nbs-name b { display: block; font-weight: 800; }
+.nbs-sub   { font-size: 12px; color: #64748b; margin-top: 2px; }
+
+.nbs-pred { display: flex; align-items: center; gap: 8px; }
+.nbs-pred .meter {
+  flex: 1; height: 6px; background: #f0f2f5; border-radius: 9999px; overflow: hidden;
+}
+.nbs-pred .meter i { display: block; height: 100%; background: #22c55e; }
+
+.nbs-dist { text-align: right; color: #475569; }
+
+/* --- 지도 아래 미니 KPI 3개 --- */
+.nbs-metric-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.nbs-metric {
+  display: flex; align-items: center; gap: 12px;
+  border: 1px solid #e5e7eb;
+  background: #fff; border-radius: 12px;
+  padding: 12px 16px; box-shadow: 0 1px 1px rgba(0,0,0,.04);
+}
+.nbs-metric-icon { font-size: 20px; }
+.nbs-metric-val  { font-size: 20px; font-weight: 800; color: #138a3b; }
+.nbs-metric-val small { font-size: 14px; color: #64748b; margin-left: 4px; }
+.nbs-metric-label { color: #6b7280; font-size: 12px; }

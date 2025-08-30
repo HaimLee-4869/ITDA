@@ -874,3 +874,143 @@
 .qty-btn:active { transform: translateY(1px); }
 .button.danger { background:#ef4444; color:#fff; }
 .button.ghost { background: #fff; border: 1px solid #d1e3f0; color:#0f172a; }
+
+
+/* ===== Rank Table ===== */
+.rank-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 8px;         /* 행을 카드처럼 분리 */
+}
+
+.rank-table thead th {
+  font-weight: 700;
+  font-size: 13px;
+  color: #6b7280;
+  text-align: left;
+  padding: 6px 10px;
+}
+
+.rank-table tbody tr {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(16,24,40,.04);
+}
+
+.rank-table tbody td {
+  padding: 12px 14px;
+  vertical-align: middle;
+}
+
+.rank-stack {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rank-chip {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: #fff;
+  font-weight: 800;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,.12);
+}
+
+.score-pill {
+  display: inline-block;
+  font-size: 12px;
+  color: #111827;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  padding: 4px 8px;
+}
+
+.village-cell .village-name {
+  font-weight: 700;
+}
+.village-cell .village-sub {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.pred-wrap {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+.pred-bar {
+  position: relative;
+  height: 8px;
+  background: #f3f4f6;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.pred-fill {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  border-radius: 999px;
+}
+.pred-badge {
+  font-weight: 700;
+  font-size: 13px;
+  color: #111827;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 4px 8px;
+}
+
+.td-right { text-align: right; }
+
+/* ====== Next Best Stop 레이아웃 ====== */
+.nbs-grid {
+  display: grid;
+  grid-template-columns: minmax(540px, 1.6fr) minmax(360px, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+@media (max-width: 1100px) {
+  .nbs-grid { grid-template-columns: 1fr; }
+}
+.nbs-map-wrap { display: grid; gap: 12px; }
+.leaflet-box { height: 380px; border-radius: 12px; overflow: hidden; }
+.nbs-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+
+/* ===== Rank Table ===== */
+.rank-table { width: 100%; border-collapse: separate; border-spacing: 0 6px; }
+.rank-table thead th { font-weight: 700; font-size: 13px; color: #6b7280; text-align: left; padding: 6px 10px; }
+.rank-table tbody tr { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 6px rgba(16,24,40,.04); }
+.rank-table tbody td { padding: 10px 12px; vertical-align: middle; }
+
+.rank-stack { display: flex; align-items: center; gap: 8px; }
+.rank-chip { display: inline-flex; width: 26px; height: 26px; border-radius: 50%; color: #fff; font-weight: 800; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,.12); }
+.score-pill { display: inline-block; font-size: 12px; color: #111827; background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 999px; padding: 4px 8px; }
+
+.village-cell .village-name { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.village-cell .village-sub { margin-top: 2px; font-size: 11px; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.pred-wrap { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+.pred-bar { position: relative; height: 8px; background: #f3f4f6; border-radius: 999px; overflow: hidden; }
+.pred-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; }
+.pred-badge { font-weight: 700; font-size: 13px; color: #111827; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 3px 8px; }
+.td-right { text-align: right; }
+
+/* ===== KPI Cards ===== */
+.kpi { display:flex; align-items:center; gap:14px; padding:16px 18px; border-radius:16px;
+  background:linear-gradient(180deg,#fff 0%,#f9fafb 100%); border:1px solid #e5e7eb; }
+.kpi-shadow { box-shadow: 0 10px 20px rgba(16,24,40,.06), 0 1px 2px rgba(16,24,40,.04); }
+.kpi-icon { width:42px; height:42px; border-radius:50%; display:grid; place-items:center; font-size:20px;
+  background:#ecfdf5; color:#065f46; border:1px solid #d1fae5; }
+.kpi-main { display:grid; gap:2px; }
+.kpi-value { font-size:26px; line-height:1.1; font-weight:800; letter-spacing:-.02em; }
+.kpi-unit { margin-left:4px; font-size:14px; font-weight:700; color:#6b7280; }
+.kpi-title { font-size:12px; color:#6b7280; }
