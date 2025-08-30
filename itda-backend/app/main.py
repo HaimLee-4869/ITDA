@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .db import create_db_and_tables
 
-from .routers import route, demand, care, alerts, inventory, sales, analytics
+from .routers import route, demand, care, alerts, inventory, sales, analytics, recommend
 from .routers import vehicles
 
 
@@ -68,3 +68,4 @@ app.include_router(sales.router,     prefix="/sales",     tags=["sales"])
 
 app.include_router(vehicles.router,  prefix="/vehicles",  tags=["vehicles"]) 
 app.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
+app.include_router(recommend.router, prefix="/recommend", tags=["recommend"])
