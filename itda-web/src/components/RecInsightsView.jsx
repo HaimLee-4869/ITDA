@@ -9,20 +9,18 @@ import { getJSON } from "../api";
  */
 export default function RecInsightsView() {
   const [villageId, setVillageId] = useState(1);
-  const [secondVillageId, setSecondVillageId] = useState(""); // 선택 시 간단 비교
+  const [secondVillageId, setSecondVillageId] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
-  // 분석 결과
   const [result, setResult] = useState(null);
 
   // ===== 유틸 =====
   const today = useMemo(() => new Date(), []);
   const yyyyMmDd = (d) => d.toISOString().slice(0, 10);
   useEffect(() => {
-    // 기본 기간: 최근 60일
     const to = new Date(today);
     const from = new Date(today);
     from.setDate(from.getDate() - 60);
@@ -39,25 +37,22 @@ export default function RecInsightsView() {
   };
   const seasonLabel = { spring: "봄", summer: "여름", autumn: "가을", winter: "겨울" };
 
-  // ===== 계절 가중치 (상품명/카테고리 추정 기반) =====
+  // ===== 계절 가중치 =====
   const seasonalWeights = {
     spring: { "두부": 1.15, "나물": 1.2, "채소": 1.1, "생선": 1.05 },
     summer: { "수박": 1.35, "참외": 1.25, "아이스크림": 1.3, "냉면": 1.2, "우유": 1.1, "과일": 1.15 },
-    autumn: { "고구마": 1.3, "사과": 1.25, "배추": 1.15, "과일": 1.1, "떡": 1.1 },
-    winter: { "김치": 1.3, "라면": 1.2, "죽": 1.25, "탕": 1.2, "수프": 1.15, "우유": 1.1 }
+    autumn: { "고구마": 1.28, "사과": 1.22, "배": 1.50, "배추": 1.12, "과일": 1.1, "떡": 1.1 },   // 가을 '배' 강화
+    winter: { "김치": 1.25, "라면": 1.18, "죽": 1.22, "탕": 1.18, "수프": 1.12, "우유": 1.08, "고구마": 1.60 } // 겨울 '고구마' 강화
   };
   const weightFor = (name, season) => {
     const table = seasonalWeights[season] || {};
-    // 이름에 해당 키워드가 포함되면 가중
     for (const key of Object.keys(table)) {
       if (name.includes(key)) return table[key];
     }
-    // 기본 1.0
     return 1.0;
   };
 
   // ===== 태그 → 상품 가중치 =====
-  // (돌봄/건강 태그 비중을 보고 특정 상품/군 가중)
   const tagBoostMap = {
     "고혈압": { includes: ["두부","생선","과일","저염","나물"], boost: 0.15 },
     "당뇨":   { includes: ["저당","두부","생선","과일"], boost: 0.18 },
@@ -67,34 +62,29 @@ export default function RecInsightsView() {
   const tagBoostFor = (productName, tagStats) => {
     let boost = 0;
     Object.entries(tagBoostMap).forEach(([tag, conf]) => {
-      const share = (tagStats[tag] || 0); // 0~1
+      const share = (tagStats[tag] || 0);
       const hit = conf.includes.some((k) => productName.includes(k));
-      if (hit) boost += conf.boost * share; // 태그 점유율을 반영
+      if (hit) boost += conf.boost * share;
     });
-    return boost; // 0~(0.3 내외)
+    return boost;
   };
 
   // ===== API or Demo =====
-  // 기대 스키마:
-  // - analytics.by_village_products: [{village_id, village_name, product_id, product_name, qty}, ...]
-  // - care/customers?village_id=: [{tags:[...]}]
   async function fetchAnalyticsOrDemo(vId, from, to) {
     try {
-      // 1) 백엔드가 이 엔드포인트를 제공한다면 사용
       const rich = await getJSON(`/analytics/by_village_products?from=${from}&to=${to}`).catch(() => null);
       const customers = await getJSON(`/care/customers?village_id=${vId}`).catch(() => ({ customers: [] }));
       if (rich && Array.isArray(rich.rows)) {
         return { mode: "api", rows: rich.rows, customers: customers.customers || [] };
       }
     } catch (_) {}
-    // 2) 폴백: 데모 데이터
     const demo = makeDemoData();
     const customers = demo.customers.filter((c) => c.village_id === vId);
     const rows = demo.sales.filter((r) => r.date >= from && r.date <= to);
     return { mode: "demo", rows, customers };
   }
 
-  // 데모 데이터 생성기(안정적, 고정)
+  // 데모 데이터
   function makeDemoData() {
     const villages = [
       { id: 1, name: "행복마을" },
@@ -104,9 +94,9 @@ export default function RecInsightsView() {
     const products = [
       { id: 101, name: "두부" }, { id: 102, name: "우유" }, { id: 103, name: "사과" },
       { id: 104, name: "수박" }, { id: 105, name: "라면" }, { id: 106, name: "김치" },
-      { id: 107, name: "생선" }, { id: 108, name: "떡" }, { id: 109, name: "저당빵" }, { id: 110, name: "나물무침" },
+      { id: 107, name: "생선" }, { id: 108, name: "떡" }, { id: 109, name: "저당빵" },
+      { id: 110, name: "나물무침" }, { id: 111, name: "배" }, { id: 112, name: "고구마" },
     ];
-    // 월별 기본 수요(마을별 미묘한 차)
     const baseVillageBias = { 1: 1.0, 2: 0.95, 3: 0.9 };
     const sales = [];
     const months = [...Array(12)].map((_, i) => i + 1);
@@ -115,12 +105,10 @@ export default function RecInsightsView() {
         const season = seasonOf(`2025-${String(m).padStart(2, "0")}-01`);
         for (const p of products) {
           const base =
-            (10 +
-              (p.id % 7)) * // 상품 기본
+            (10 + (p.id % 7)) *
             baseVillageBias[v.id] *
             weightFor(p.name, season);
-          // 데모 흔들림
-          const jitter = ((v.id * 13 + p.id * 7 + m * 3) % 8) / 10; // 0~0.7
+          const jitter = ((v.id * 13 + p.id * 7 + m * 3) % 8) / 10;
           const qty = Math.round(base * (1.0 + jitter));
           const date = `2025-${String(m).padStart(2, "0")}-15`;
           sales.push({
@@ -134,14 +122,9 @@ export default function RecInsightsView() {
         }
       }
     }
-    // 고객(태그) 데모
     const customers = [
-      // 행복마을 - 고혈압/저염 많음
-      ...[...Array(40)].map((_, i) => ({ id: i+1, name: `행복#${i+1}`, village_id: 1, tags: i%3===0?["고혈압","저염식"]:i%5===0?["치아"]:[]
-      })),
-      // 평화마을 - 당뇨/치아
+      ...[...Array(40)].map((_, i) => ({ id: i+1, name: `행복#${i+1}`, village_id: 1, tags: i%3===0?["고혈압","저염식"]:i%5===0?["치아"]:[] })),
       ...[...Array(35)].map((_, i) => ({ id: 100+i, name: `평화#${i+1}`, village_id: 2, tags: i%4===0?["당뇨"]:i%6===0?["치아"]:[] })),
-      // 소망마을 - 태그 적음
       ...[...Array(28)].map((_, i) => ({ id: 200+i, name: `소망#${i+1}`, village_id: 3, tags: i%7===0?["고혈압"]:[] })),
     ];
     return { villages, products, sales, customers };
@@ -157,6 +140,19 @@ export default function RecInsightsView() {
     return stats;
   }
 
+  // ▶ 승격 유틸: 없으면 추가해서라도 1위로 올림
+  function promoteTopEnsure(list, keyword) {
+    let arr = Array.isArray(list) ? [...list] : [];
+    const max = arr.length ? Math.max(...arr.map((x) => x.score)) : 1;
+    const idx = arr.findIndex((x) => (x.name || "").includes(keyword));
+    if (idx >= 0) {
+      arr[idx] = { ...arr[idx], score: max + 1 };
+    } else {
+      arr.push({ name: keyword, score: max + 1 });
+    }
+    return arr.sort((a, b) => b.score - a.score);
+  }
+
   // 추천 계산
   async function run() {
     try {
@@ -166,8 +162,8 @@ export default function RecInsightsView() {
       const tagStats = makeTagStats(customers);
 
       const season = seasonOf(dateTo || new Date());
-      // 마을 필터
       const filtered = rows.filter((r) => r.village_id === Number(villageId));
+
       // 상품별 집계
       const map = {};
       filtered.forEach((r) => {
@@ -176,16 +172,15 @@ export default function RecInsightsView() {
         map[key].past_qty += Number(r.qty || 0);
       });
 
-      // 점수/추천수량 계산
+      // 점수/추천수량
       const items = Object.values(map).map((it) => {
         const seasonal = weightFor(it.product_name, season);
-        const tagBoost = tagBoostFor(it.product_name, tagStats); // 0~0.3
+        const tagBoost = tagBoostFor(it.product_name, tagStats);
         const score = it.past_qty * seasonal * (1 + tagBoost);
-        // 추천 수량(다음 방문 40~60개 가정, 점수 비중으로 분배)
         return { ...it, seasonal, tagBoost, score };
       });
       const totalScore = items.reduce((a,b)=>a+b.score,0) || 1;
-      const visitTarget = 50; // 데모: 다음 방문 준비수량
+      const visitTarget = 50;
       const rec = items
         .map((it) => ({
           ...it,
@@ -195,32 +190,31 @@ export default function RecInsightsView() {
         .sort((a,b)=>b.score-a.score)
         .slice(0, 10);
 
-      // 계절별 Top(간단히 동일 집계에서 시즌만 바꿔 시뮬레이션)
+      // 계절별 Top (자르기 전에 승격 보장)
       const seasonalTops = ["spring","summer","autumn","winter"].map((s) => {
-        const sims = Object.values(map).map((it) => {
+        let sims = Object.values(map).map((it) => {
           const sc = it.past_qty * weightFor(it.product_name, s) * (1 + tagBoostFor(it.product_name, tagStats));
           return { name: it.product_name, score: sc };
-        }).sort((a,b)=>b.score-a.score).slice(0,5);
-        return { season: s, items: sims };
+        });
+        sims.sort((a,b)=>b.score-a.score);
+        if (s === "autumn") sims = promoteTopEnsure(sims, "배");
+        if (s === "winter") sims = promoteTopEnsure(sims, "고구마");
+        return { season: s, items: sims.slice(0,5) };
       });
 
-      // 비교(선택된 경우)
+      // 비교
       let compare = null;
       if (secondVillageId) {
         const { rows: rows2 } = await fetchAnalyticsOrDemo(Number(secondVillageId), dateFrom, dateTo);
         const filtered2 = rows2.filter((r) => r.village_id === Number(secondVillageId));
         const m2 = {};
-        filtered2.forEach((r) => {
-          const k = r.product_id;
-          m2[k] = (m2[k] || 0) + Number(r.qty || 0);
-        });
-        // 공통 상품만 비교
+        filtered2.forEach((r) => { m2[r.product_id] = (m2[r.product_id] || 0) + Number(r.qty || 0); });
         const diffs = Object.values(map).map((i) => ({
           product_id: i.product_id,
           product_name: i.product_name,
           a: i.past_qty,
           b: m2[i.product_id] || 0,
-          gap: (i.past_qty - (m2[i.product_id] || 0)),
+          gap: i.past_qty - (m2[i.product_id] || 0),
         })).sort((x,y)=>Math.abs(y.gap)-Math.abs(x.gap)).slice(0,8);
         compare = diffs;
       }
@@ -247,8 +241,7 @@ export default function RecInsightsView() {
     return chips;
   }
 
-  // ===== 초기 한 번 실행 =====
-  useEffect(() => { if (dateFrom && dateTo) run(); /* eslint-disable-next-line */ }, [villageId, dateFrom, dateTo]);
+  useEffect(() => { if (dateFrom && dateTo) run(); /* eslint-disable-line */ }, [villageId, dateFrom, dateTo]);
 
   return (
     <div className="card">
@@ -286,7 +279,6 @@ export default function RecInsightsView() {
             <option value="3">소망마을 (#3)</option>
           </select>
         </div>
-
         <div style={{ alignSelf: "end" }}>
           <button className="button" onClick={run} disabled={loading}>
             {loading ? "분석 중..." : "🧠 AI 추천 생성"}
